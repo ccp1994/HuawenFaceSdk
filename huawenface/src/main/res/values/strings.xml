@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">HuawenFace</string>
+    <string name="dialog_choose_device_title">选择设备</string>
+    <string name="loading">加载中...</string>
+    <string name="dialog_set_device_info">设置设备信息</string>
+    <string name="confirm">确定</string>
+    <string name="hint_device_id_input">请输入设备ID</string>
+    <string name="hint_group_id_input">请输入俱乐部ID</string>
+</resources>

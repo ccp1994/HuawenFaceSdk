@@ -1,0 +1,47 @@
+
+ext {
+    
+        
+
+
+    projectVersion = '3.0.0-2017.1.22'
+
+    extVersion = '27.1.1'
+    externalAndroidCardView = "com.android.support:cardview-v7:${extVersion}"
+    externalAndroidAppCompatV7 = "com.android.support:appcompat-v7:${extVersion}"
+    externalAndroidRecyclerView = "com.android.support:recyclerview-v7:${extVersion}"
+    externalAndroidSupportV13 = "com.android.support:support-v13:${extVersion}"
+    externalAndroidSupportV4 = "com.android.support:support-v4:${extVersion}"
+    externalAndroidDesign = "com.android.support:design:${extVersion}"
+    externalAndroidPallette = "com.android.support:palette-v7:${extVersion}"
+    externalAndroidSupportAnnotation = "com.android.support:support-annotations:${extVersion}"
+
+    externalImageLoader = 'com.nostra13.universalimageloader:universal-image-loader:1.9.3'
+
+    AndroidLogger = 'com.orhanobut:logger:1.13'//打印日志
+
+//    externalAndroidAsyncHttp = 'com.loopj.android:android-async-http:1.4.9'
+//    externalAutoFactory = 'com.google.auto.factory:auto-factory:1.0-beta2'
+//    externalDagger = 'com.google.dagger:dagger:2.0.1'
+//    externalDaggerCompiler = 'com.google.dagger:dagger-compiler:2.0.1'
+//    externalFastJson = 'com.alibaba:fastjson:1.2.5'
+
+//    externalInject = 'javax.inject:javax.inject:1'
+
+//    externalJSR305 = 'com.google.code.findbugs:jsr305:2.0.1'
+    externalGlide = 'com.github.bumptech.glide:glide:3.7.0'
+    externalGlideOkHttp = 'com.github.bumptech.glide:okhttp3-integration:1.4.0@aar'
+    externalOKHTTP = 'com.squareup.okhttp3:okhttp:3.3.1'
+    externalGSON = 'com.google.code.gson:gson:2.3.1'
+    externalOKIO = 'com.squareup.okio:okio:1.12.0'
+
+    EventBus = 'org.greenrobot:eventbus:3.0.0'
+//    externalEasyPermissions = 'pub.devrel:easypermissions:0.2.1'
+
+    externalCompileSdkVersion = 27
+    externalBuildToolsVersion = "27.1.1"
+    externalMinSdkVersion = 16
+    externalTargetSdkVersion = 27
+    externalVersionCode = 1
+    externalVersionName = "1.0.0"
+}
