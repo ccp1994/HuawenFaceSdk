@@ -1,7 +1,9 @@
 package com.huawen.huawenface.sdk.act;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -12,6 +14,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -142,6 +145,10 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
+        if(getNumberOfCameras()==0){
+            showToast(R.string.have_no_camera);
+            finish();
+        }
         super.onCreate(savedInstanceState);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -172,6 +179,7 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
             mFRAbsLoop.pauseThread();
         } else {
         }
+
     }
 
     private void beforeShowChooseDialog() {
@@ -309,6 +317,12 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
     }
 
 
+    //获取摄像头个数
+    public int  getNumberOfCameras() {
+        int cameraCount=  Camera.getNumberOfCameras();
+        Log.e(TAG,"cameraCount:"+cameraCount);
+        return cameraCount;
+    }
     //显示预览框(第一次开启的时候调用)
     @NeedsPermission({Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA})
     public void startPreview() {
@@ -321,7 +335,7 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
                 mHeight = dataConfig.height;
 
 
-                mCameraID = Camera.CameraInfo.CAMERA_FACING_FRONT;
+                mCameraID =getNumberOfCameras()>1? Camera.CameraInfo.CAMERA_FACING_FRONT:Camera.CameraInfo.CAMERA_FACING_BACK;
                 mCameraRotate = 270;
                 mCameraMirror = true;
 
@@ -758,7 +772,7 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
     public void surfaceCreated(SurfaceHolder holder) {
         int defaultId = -1;
         // Find the total number of cameras available
-        int cameraNum = Camera.getNumberOfCameras();
+        int cameraNum = getNumberOfCameras();
         // Find the ID of the default camera
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
         for (int i = 0; i < cameraNum; i++) {

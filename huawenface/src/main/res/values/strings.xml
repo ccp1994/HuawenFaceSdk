@@ -6,4 +6,5 @@
     <string name="confirm">确定</string>
     <string name="hint_device_id_input">请输入设备ID</string>
     <string name="hint_group_id_input">请输入俱乐部ID</string>
+    <string name="have_no_camera">没有检测到摄像头</string>
 </resources>

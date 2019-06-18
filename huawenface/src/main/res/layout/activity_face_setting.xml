@@ -50,7 +50,7 @@
         android:layout_height="50dp"
         android:layout_margin="10dp"
         android:layout_marginTop="10dp"
-        android:background="?android:attr/colorAccent"
+        android:background="#f50"
         android:gravity="center"
         android:text="@string/confirm"
 
