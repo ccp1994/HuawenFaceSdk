@@ -42,6 +42,12 @@
             android:textColorHint="#999"
             android:theme="@style/EditTextView" />
 
+        <TextView
+            android:id="@+id/setting_device_choose"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="@string/choose_device_type" />
     </LinearLayout>
 
     <TextView

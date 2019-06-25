@@ -7,4 +7,7 @@
     <string name="hint_device_id_input">请输入设备ID</string>
     <string name="hint_group_id_input">请输入俱乐部ID</string>
     <string name="have_no_camera">没有检测到摄像头</string>
+    <string name="have_no_internet_attack">没有检测到网络</string>
+    <string name="dialog_title_recog_result">识别结果</string>
+    <string name="choose_device_type">选择设备类型</string>
 </resources>

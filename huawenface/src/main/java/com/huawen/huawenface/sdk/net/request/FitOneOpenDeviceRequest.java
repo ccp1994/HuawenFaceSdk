@@ -4,6 +4,15 @@ public class FitOneOpenDeviceRequest extends FitOneBaseRequest{
     private String dev_id;
     private String dev_type;
     private String personId;
+    private String faceId;
+
+    public String getFaceId() {
+        return faceId;
+    }
+
+    public void setFaceId(String faceId) {
+        this.faceId = faceId;
+    }
 
     public String getDev_id() {
         return dev_id;

@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -28,7 +30,17 @@ public final class PhoneUtil {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         return pm.isScreenOn();
     }
+    // 检查是否有网络
+    public static boolean hasInternet() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) GlobalApp.getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+        if (info != null && info.isAvailable()) {
 
+            return true;
+        } else {
+            return false;
+        }
+    }
     public static String getDeviceId(final Context context) {
         String deviceId = "";
 

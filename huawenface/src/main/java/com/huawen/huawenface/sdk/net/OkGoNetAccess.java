@@ -26,7 +26,12 @@ public class OkGoNetAccess {
                         //注意这里已经是在主线程了
                         String data = response.body();//这个就是返回来的结果
                         if (!TextUtils.isEmpty(data)) {
-                            Result result = (Result) new Gson().fromJson(data, clazz);
+                            Result result=new Result();
+                            try{
+                               result = (Result) new Gson().fromJson(data, clazz);
+                            }catch (Exception e){
+
+                            }
                             if (callback != null)
                                 callback.callback(result);
                         }

@@ -1,14 +1,13 @@
 package com.huawen.huawenface.sdk.net.request;
 
 public class FitOneRegisterRequest extends FitOneBaseRequest{
-    private String data;
+    private String file;
 
-    public String getData() {
-        return data;
+    public String getFile() {
+        return file;
     }
 
-    public void setData(String data) {
-        this.data = data;
+    public void setFile(String file) {
+        this.file = file;
     }
-
 }

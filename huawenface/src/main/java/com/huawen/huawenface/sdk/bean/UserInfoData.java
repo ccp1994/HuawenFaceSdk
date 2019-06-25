@@ -47,6 +47,15 @@ public class UserInfoData extends FitoneResult {
         String membershipId;
         String cardId;
         String type;
+        String faceId;
+
+        public String getFaceId() {
+            return faceId;
+        }
+
+        public void setFaceId(String faceId) {
+            this.faceId = faceId;
+        }
 
         public UserInfoIdBean get_id() {
             return _id;

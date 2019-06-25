@@ -1,14 +1,19 @@
 package com.huawen.huawenface.sdk.act;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.AppCompatEditText;
 import android.view.View;
 
 import com.huawen.huawenface.R;
 import com.huawen.huawenface.sdk.Constants;
 import com.huawen.huawenface.sdk.Global;
+import com.huawen.huawenface.sdk.bean.DeviceTypeItemBean;
+
+import java.util.List;
 
 public class FaceSettingActivity extends BaseActivity {
     private AppCompatEditText mClubeInputView;
@@ -32,6 +37,20 @@ public class FaceSettingActivity extends BaseActivity {
                 finish();
             }
         });
+        findViewById(R.id.setting_device_choose).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Global.getInstance().getInitData(new com.fpa.mainsupport.core.Callback() {
+                    @Override
+                    public void call(Object[] values) {
+                        boolean result = (boolean) values[0];
+                        if (result) {
+                            showChooseDialog(Global.getInstance().getDeviceTypeList());
+                        }
+                    }
+                });
+            }
+        });
         findViewById(R.id.back).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -39,4 +58,29 @@ public class FaceSettingActivity extends BaseActivity {
             }
         });
     }
+    private void showChooseDialog(final List<DeviceTypeItemBean> deviceTypeItemBeans) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setIcon(R.drawable.ic_launcher);
+        builder.setTitle(R.string.dialog_choose_device_title);
+        final String[] Items = new String[deviceTypeItemBeans.size()];
+
+        int index = 0;
+        for (DeviceTypeItemBean item : deviceTypeItemBeans) {
+            Items[index++] = item.getContent();
+        }
+        builder.setItems(Items, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Global.setSpString(Constants.Sp.DEVICE_TYPE, deviceTypeItemBeans.get(i).getContent());
+                Global.setSpString(Constants.Sp.SP_DEVICE_KEY, deviceTypeItemBeans.get(i).getKey());
+                Global.setSpBoolean(Constants.Sp.IS_FIRST_RUN, false);
+//                initFace();
+//                FaceDetectActivityPermissionsDispatcher.startPreviewWithPermissionCheck(FaceDetectActivity.this);
+            }
+        });
+        builder.setCancelable(true);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
 }

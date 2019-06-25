@@ -1,27 +1,22 @@
 package com.huawen.huawenface.sdk.act;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
-import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatEditText;
 import android.text.TextUtils;
 import android.util.Base64;
@@ -42,6 +37,7 @@ import com.arcsoft.facetracking.AFT_FSDKError;
 import com.arcsoft.facetracking.AFT_FSDKFace;
 import com.arcsoft.facetracking.AFT_FSDKVersion;
 import com.fpa.mainsupport.core.utils.Log;
+import com.fpa.mainsupport.core.utils.PhoneUtil;
 import com.google.gson.Gson;
 import com.guo.android_extend.java.ExtByteArrayOutputStream;
 import com.guo.android_extend.widget.CameraFrameData;
@@ -54,34 +50,35 @@ import com.huawen.huawenface.sdk.FaceDB;
 import com.huawen.huawenface.sdk.Global;
 import com.huawen.huawenface.sdk.bean.DataConfig;
 import com.huawen.huawenface.sdk.bean.DeviceTypeItemBean;
+import com.huawen.huawenface.sdk.bean.FaceConfig;
 import com.huawen.huawenface.sdk.bean.ImageRecogData;
+import com.huawen.huawenface.sdk.bean.ResultData;
 import com.huawen.huawenface.sdk.bean.UserInfoData;
 import com.huawen.huawenface.sdk.net.Callback;
 import com.huawen.huawenface.sdk.net.OkGoNetAccess;
 import com.huawen.huawenface.sdk.net.Result;
+import com.huawen.huawenface.sdk.net.Sign;
 import com.huawen.huawenface.sdk.net.request.FitOneOpenDeviceRequest;
 import com.huawen.huawenface.sdk.net.request.FitOneRegisterRequest;
-import com.huawen.huawenface.sdk.net.request.ImageRecogRequest;
 import com.huawen.huawenface.sdk.ui.CustomeAbsLoop;
 import com.huawen.huawenface.sdk.ui.FaceRectView;
 import com.huawen.huawenface.sdk.utils.ImageUtils;
 import com.huawen.huawenface.sdk.utils.ScreenUtils;
-import com.lzy.okgo.model.HttpParams;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Date;
 import java.util.List;
 
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.RuntimePermissions;
 
@@ -145,8 +142,12 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
-        if(getNumberOfCameras()==0){
+        if (getNumberOfCameras() == 0) {
             showToast(R.string.have_no_camera);
+            finish();
+        }
+        if (!PhoneUtil.hasInternet()) {
+            showToast(R.string.have_no_internet_attack);
             finish();
         }
         super.onCreate(savedInstanceState);
@@ -293,6 +294,7 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
                 YuvImage yuv = new YuvImage(data, ImageFormat.NV21, mWidth, mHeight, null);
                 ExtByteArrayOutputStream ops = new ExtByteArrayOutputStream();
                 yuv.compressToJpeg(mAFT_FSDKFace.getRect(), 80, ops);
+                //获取图片并注册人脸
                 final Bitmap bmp = BitmapFactory.decodeByteArray(ops.getByteArray(), 0, ops.getByteArray().length);
                 mImageNV21 = null;
                 if (bmp != null) {
@@ -318,11 +320,12 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
 
 
     //获取摄像头个数
-    public int  getNumberOfCameras() {
-        int cameraCount=  Camera.getNumberOfCameras();
-        Log.e(TAG,"cameraCount:"+cameraCount);
+    public int getNumberOfCameras() {
+        int cameraCount = Camera.getNumberOfCameras();
+        Log.e(TAG, "cameraCount:" + cameraCount);
         return cameraCount;
     }
+
     //显示预览框(第一次开启的时候调用)
     @NeedsPermission({Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA})
     public void startPreview() {
@@ -335,7 +338,7 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
                 mHeight = dataConfig.height;
 
 
-                mCameraID =getNumberOfCameras()>1? Camera.CameraInfo.CAMERA_FACING_FRONT:Camera.CameraInfo.CAMERA_FACING_BACK;
+                mCameraID = getNumberOfCameras() > 1 ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;
                 mCameraRotate = 270;
                 mCameraMirror = true;
 
@@ -396,8 +399,35 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
         return buffer;
     }
 
-    private void compareWithWebServer(Bitmap bmp) {
-        Log.e(TAG, "------" + (System.currentTimeMillis() - lastRequestTime) / 1000);
+    public void postImageToWebServer(String url, String group_id, Bitmap bitmap, String userId, long appId, String secretId, String secretKey, String bucketName, long expired, okhttp3.Callback callback) {
+
+        String sign = null;
+        try {
+            sign = Sign.appSign(appId, secretId, secretKey, bucketName, expired).replace("\n", "");
+        } catch (Exception e) {
+            e.printStackTrace();
+            sign = "";
+        }
+        MediaType MEDIA_TYPE_PNG = MediaType.parse("image/jpeg");
+        MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
+        builder.addFormDataPart("appid", appId + "")
+                .addFormDataPart("group_id", group_id)
+                .addFormDataPart("image", new Date().getTime() + ".jpg", RequestBody.create(MEDIA_TYPE_PNG, ImageUtils.Bitmap2Bytes(bitmap)));
+//                .addFormDataPart("url", "http://i9.taou.com/maimai/p/4425/6762_49_62QooXqTEXCLj2-a160");
+        MultipartBody requestBody = builder.build();
+        //构建请求
+        okhttp3.Request request = new okhttp3.Request.Builder()
+                .addHeader("host", "service.image.myqcloud.com")
+                .addHeader("authorization", sign)
+                .url(url)
+                .post(requestBody)
+                .build();
+        client.newCall(request).enqueue(callback);
+    }
+
+
+    private void compareWithWebServer(final Bitmap bmp) {
+        android.util.Log.e("ZYN", "------" + (System.currentTimeMillis() - lastRequestTime) / 1000);
         if (lastRequestTime != 0 && (System.currentTimeMillis() - lastRequestTime) / 1000 < dataConfig.sensitivity) {
             return;
         }
@@ -405,111 +435,234 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
         lastRequestTime = System.currentTimeMillis();
 
 
-        final String imagePath = ImageUtils.saveBitmapTofile(bmp, System.currentTimeMillis() + ".jpg");
-        final String picStr = Base64.encodeToString(File2byte(imagePath), Base64.NO_WRAP);
-        final String imageFormat = "jpeg";
-        String imageBase64 = "data:image/" + imageFormat + ";base64," + picStr;
-        ImageRecogRequest recogRequest = new ImageRecogRequest();
-//        recogRequest.setImage(imageBase64);
-        List<String> list = new ArrayList();
-        list.add("addfd");
-        list.add("bbada");
-        recogRequest.setRepositoryIds(list);
-//        showProgressDialog(R.string.loading, true, null);
-        OkGoNetAccess.get("http://api.huayuexh.com/huawen.php?act=imageRecog", recogRequest.toParams(ImageRecogRequest.class), ImageRecogData.class, new Callback() {
+        postImageToWebServer(FaceConfig.URL, dataConfig.groupId, bmp, FaceConfig.USER_ID, FaceConfig.APPID, FaceConfig.SECRETID, FaceConfig.SECRETKEY, FaceConfig.BUCKERNAME, 5 * 60, new okhttp3.Callback() {
             @Override
-            public void callback(Result result) {
-//                hideProgressDialog();
-                if (result.isSuccess()) {
-                    ImageRecogData data = (ImageRecogData) result;
-                    List<ImageRecogData.ImageRecogItem> pinganDataList = data.getData();
-                    if (pinganDataList.size() > 0) {
-                        mPinganPersonInfo = pinganDataList.get(0);
-                    }
-                    postPingAnData(new Gson().toJson(mPinganPersonInfo));
-                } else {
-                    showToast(result.getMessage());
-
-                }
-            }
-        });
-        if (imagePath != null) {
-
-        } else {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    showToast("save pic  failed:");
-                    return;
-
-                }
-            });
-        }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                showToast("识别成功");
-
-
-            }
-        });
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            public void onFailure(Call call, IOException e) {
+                android.util.Log.e("ZYN", "error:" + e.getMessage());
+                final String json = "{\"log\":\"识别出错：" + e.getMessage() + "\"}";
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mFRAbsLoop.resumeThread();
+                        showToast(json);
                     }
                 });
+                saveLogToWeb(json);
             }
-        }).start();
 
-//        postImageToWebServer(Config.URL, dataConfig.groupId, bmp, Config.USER_ID, Config.APPID, Config.SECRETID, Config.SECRETKEY, Config.BUCKETNAME, 5 * 60, new Callback() {
-//            @Override
-//            public void onFailure(Call call, IOException e) {
-//                Log.e(TAG, "error:" + e.getMessage());
-//                String json = "{\"log\":\"识别出错：" + e.getMessage() + "\"}";
-//                saveLogToWeb(json);
-//            }
-//
-//            @Override
-//            public void onResponse(Call call, okhttp3.Response response) throws IOException {
-//                final String result = response.body().string();
-//                Log.e(TAG, result);
-//                ResultData resultData = new Gson().fromJson(result, ResultData.class);
-//                if (resultData == null || resultData.getCode() != 0 || resultData.getData().getCandidates().size() <= 0 || resultData.getData().getCandidates().get(0).getConfidence() < dataConfig.getRecognitionDegree()) {
-//                    String json = "{\"log\":\"识别成功，识别率小于设定阈值\"}";
-//                    saveLogToWeb(json);
+            @Override
+            public void onResponse(Call call, okhttp3.Response response) throws IOException {
+                final String result = response.body().string();
+                android.util.Log.e("ZYN", result);
+                final ResultData resultData = new Gson().fromJson(result, ResultData.class);
+                if (resultData == null || resultData.getCode() != 0 || resultData.getData().getCandidates().size() <= 0 || resultData.getData().getCandidates().get(0).getConfidence() < dataConfig.getRecognitionDegree()) {
+                    final String json = "识别成功，识别率小于设定阈值";
+                    saveLogToWeb(json);
+                    mFRAbsLoop.resumeThread();
+                    lastRequestTime = System.currentTimeMillis() - (dataConfig.sensitivity + 2) * 1000;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+//                            showToast(json);
+                            showRecogResultDialog(json, resultData, "");
+
+                        }
+                    });
+                } else {
+                    //调用js方法
+                    final String json = "{\"log\":\"识别成功，识别率大于设定阈值\"}";
+                    saveLogToWeb(json);
 //                    mFRAbsLoop.resumeThread();
-//                    lastRequestTime = System.currentTimeMillis() - (dataConfig.sensitivity + 2) * 1000;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+//                            hidePreview();
+//                            showToast(json);
+                            final String imagePath = ImageUtils.saveBitmapTofile(bmp, System.currentTimeMillis() + ".jpg");
+                            final String picStr = Base64.encodeToString(File2byte(imagePath), Base64.NO_WRAP);
+                            final String imageFormat = "jpeg";
+                            String imageBase64 = "data:image/" + imageFormat + ";base64," + picStr;
+                            showRecogResultDialog(json, resultData, imageBase64);
+
+                            //mWebViewMain.loadUrl("https://www.baidu.com");
+                            android.util.Log.e("ZYN", "SUCCESS");
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private void showRecogResultDialog(String json, ResultData resultData, final String imageBase64) {
+//        AlertDialog.Builder builder = new AlertDialog.Builder(FaceDetectActivity.this);
+//        builder.setIcon(R.drawable.ic_launcher);
+//        builder.setTitle(R.string.dialog_title_recog_result);
+//        builder.setPositiveButton(R.string.confirm, null);
+        ResultData.DataBean data = resultData.getData();
+        List<ResultData.DataBean.CandidatesBean> cos = data.getCandidates();
+
+        String resultStr = "";
+        boolean isNewUser;
+        String personId = "";
+        if (cos != null && cos.size() > 0) {
+//            resultStr="最大识别率："+cos.get(0).getConfidence()+",faceId:"+cos.get(0).getFace_id()+",personId:"+cos.get(0).getPerson_id();
+//            resultStr+="最低识别率："+cos.get(cos.size()-1).getConfidence()+",faceId:"+cos.get(cos.size()-1).getFace_id()+",personId:"+cos.get(cos.size()-1).getPerson_id();
+            isNewUser = cos.get(0).getConfidence() < 85;
+            if (isNewUser) {
+                resultStr += "用户库不存在，即将注册新用户";
+                postPingAnData(imageBase64);
+
+            } else {
+                String personIdStr = cos.get(0).getPerson_id();
+                String[] personIdStrs = personIdStr.split("\\.");
+                if (personIdStrs.length == 3) {
+                    getUserInfo(personIdStrs[2]);
+                }
+                return;
+            }
+        } else {
+            resultStr = "没有识别结果";
+        }
+        showToast(resultStr);
+
+//        builder.setMessage(json + ",data:" + resultStr);
+//        final AlertDialog dialog = builder.create();
+//
+//        //为了防止 getButton() 为空,需要在 OnShowListener 里设置事件
+//        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+//            @Override
+//            public void onShow(final DialogInterface dialogInterface) {
+//                //为了避免点击 positive 按钮后直接关闭 dialog,把点击事件拿出来设置
+//                dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+//                        .setOnClickListener(new View.OnClickListener() {
+//                            @Override
+//                            public void onClick(View v) {
+//                                mFRAbsLoop.resumeThread();
+//                                dialog.dismiss();
+//                                postPingAnData(imageBase64);
+//                            }
+//                        });
+//            }
+//        });
+//        dialog.show();
+//        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#c6174e"));
+    }
+
+
+//    private void compareWithWebServer(Bitmap bmp) {
+//        Log.e(TAG, "------" + (System.currentTimeMillis() - lastRequestTime) / 1000);
+//        if (lastRequestTime != 0 && (System.currentTimeMillis() - lastRequestTime) / 1000 < dataConfig.sensitivity) {
+//            return;
+//        }
+//        mFRAbsLoop.pauseThread();
+//        lastRequestTime = System.currentTimeMillis();
+//
+//
+//        final String imagePath = ImageUtils.saveBitmapTofile(bmp, System.currentTimeMillis() + ".jpg");
+//        final String picStr = Base64.encodeToString(File2byte(imagePath), Base64.NO_WRAP);
+//        final String imageFormat = "jpeg";
+//        String imageBase64 = "data:image/" + imageFormat + ";base64," + picStr;
+//        ImageRecogRequest recogRequest = new ImageRecogRequest();
+////        recogRequest.setImage(imageBase64);
+//        List<String> list = new ArrayList();
+//        list.add("addfd");
+//        list.add("bbada");
+//        recogRequest.setRepositoryIds(list);
+////        showProgressDialog(R.string.loading, true, null);
+//        OkGoNetAccess.get("http://api.huayuexh.com/huawen.php?act=imageRecog", recogRequest.toParams(ImageRecogRequest.class), ImageRecogData.class, new Callback() {
+//            @Override
+//            public void callback(Result result) {
+////                hideProgressDialog();
+//                if (result.isSuccess()) {
+//                    ImageRecogData data = (ImageRecogData) result;
+//                    List<ImageRecogData.ImageRecogItem> pinganDataList = data.getData();
+//                    if (pinganDataList.size() > 0) {
+//                        mPinganPersonInfo = pinganDataList.get(0);
+//                    }
+//                    postPingAnData(new Gson().toJson(mPinganPersonInfo));
 //                } else {
-//                    //调用js方法
-//                    String json = "{\"log\":\"识别成功，识别率大于设定阈值\"}";
-//                    saveLogToWeb(json);
-//                    runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-////                            hidePreview();
-////                            saveLogToWeb("识别结果：" + result);
-//                            //mWebViewMain.loadUrl("https://www.baidu.com");
-//                            Log.e(TAG, "SUCCESS,result:" + result);
-////                            takePicture();
-//                            Intent intent= new Intent(FaceDetectActivity.this, ResultActivity.class);
-//                            intent.putExtra("result",result);
-//                            startActivity(intent);
-//                        }
-//                    });
+//                    showToast(result.getMessage());
+//
 //                }
 //            }
 //        });
-    }
+//        if (imagePath != null) {
+//
+//        } else {
+//            runOnUiThread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    showToast("save pic  failed:");
+//                    return;
+//
+//                }
+//            });
+//        }
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                showToast("识别成功");
+//
+//
+//            }
+//        });
+//
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    Thread.sleep(3000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        mFRAbsLoop.resumeThread();
+//                    }
+//                });
+//            }
+//        }).start();
+//
+////        postImageToWebServer(Config.URL, dataConfig.groupId, bmp, Config.USER_ID, Config.APPID, Config.SECRETID, Config.SECRETKEY, Config.BUCKETNAME, 5 * 60, new Callback() {
+////            @Override
+////            public void onFailure(Call call, IOException e) {
+////                Log.e(TAG, "error:" + e.getMessage());
+////                String json = "{\"log\":\"识别出错：" + e.getMessage() + "\"}";
+////                saveLogToWeb(json);
+////            }
+////
+////            @Override
+////            public void onResponse(Call call, okhttp3.Response response) throws IOException {
+////                final String result = response.body().string();
+////                Log.e(TAG, result);
+////                ResultData resultData = new Gson().fromJson(result, ResultData.class);
+////                if (resultData == null || resultData.getCode() != 0 || resultData.getData().getCandidates().size() <= 0 || resultData.getData().getCandidates().get(0).getConfidence() < dataConfig.getRecognitionDegree()) {
+////                    String json = "{\"log\":\"识别成功，识别率小于设定阈值\"}";
+////                    saveLogToWeb(json);
+////                    mFRAbsLoop.resumeThread();
+////                    lastRequestTime = System.currentTimeMillis() - (dataConfig.sensitivity + 2) * 1000;
+////                } else {
+////                    //调用js方法
+////                    String json = "{\"log\":\"识别成功，识别率大于设定阈值\"}";
+////                    saveLogToWeb(json);
+////                    runOnUiThread(new Runnable() {
+////                        @Override
+////                        public void run() {
+//////                            hidePreview();
+//////                            saveLogToWeb("识别结果：" + result);
+////                            //mWebViewMain.loadUrl("https://www.baidu.com");
+////                            Log.e(TAG, "SUCCESS,result:" + result);
+//////                            takePicture();
+////                            Intent intent= new Intent(FaceDetectActivity.this, ResultActivity.class);
+////                            intent.putExtra("result",result);
+////                            startActivity(intent);
+////                        }
+////                    });
+////                }
+////            }
+////        });
+//    }
+//
 
     /**
      * 上传数据到平安银行
@@ -519,15 +672,16 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
     private void postPingAnData(String data) {
 //        showProgressDialog(R.string.loading, true, null);
         final FitOneRegisterRequest request = new FitOneRegisterRequest();
-        request.setData(data);
-        OkGoNetAccess.post(Config.REAL_FITONE_BASE + "/cgi/orientRegVipUser", request.toParams(FitOneRegisterRequest.class), UserInfoData.class, new Callback() {
+        request.setFile(data);
+        OkGoNetAccess.post(Config.REAL_FITONE_BASE + "/app/clubs/registerVipByFace", request.toParams(FitOneRegisterRequest.class), UserInfoData.class, new Callback() {
             @Override
             public void callback(Result result) {
 //                hideProgressDialog();
                 if (result.isSuccess()) {
-                    showToast(result.getMessage());
+                    showToast("用户注册成功即将开启设备");
                     //开启设备
-                    openDevice();
+                    UserInfoData userData = (UserInfoData) result;
+                    openDevice(userData.getData().getFaceId());
                 } else {
                     showToast(result.getMessage());
 
@@ -536,21 +690,44 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
         });
     }
 
-    private void openDevice() {
-//        showProgressDialog(R.string.loading, true, null);
+    private void getUserInfo(String personIdStr) {
         final FitOneOpenDeviceRequest request = new FitOneOpenDeviceRequest();
         request.setDev_id(Global.getSpString(Constants.Sp.SP_DEVICE_ID, ""));
-        request.setDev_type(Global.getSpString(Constants.Sp.SP_DEVICE_KEY, ""));
-        if (mPinganPersonInfo != null)
-            request.setPersonId(mPinganPersonInfo.getPersonId());
-        OkGoNetAccess.post(Config.REAL_FITONE_BASE + "/cgi/orientOpenDevice", request.toParams(FitOneOpenDeviceRequest.class), Result.class, new Callback() {
+        request.setPersonId(personIdStr);
+        OkGoNetAccess.post(Config.REAL_FITONE_BASE + "/cgi/orientGetUser", request.toParams(FitOneOpenDeviceRequest.class), UserInfoData.class, new Callback() {
             @Override
             public void callback(Result result) {
                 hideProgressDialog();
                 if (result.isSuccess()) {
-                    showToast(result.getMessage());
+                    UserInfoData data = (UserInfoData) result;
+//                    showToast(result.getMessage());
                     //开启设备
-                    openDevice();
+                    openDevice(data.getData().getFaceId());
+                } else {
+                    showToast(result.getMessage());
+
+                }
+            }
+        });
+    }
+
+    private void openDevice(final String userId) {
+//        showProgressDialog(R.string.loading, true, null);
+        if(TextUtils.isEmpty(userId)||"".equals(userId)){
+            return;
+        }
+        final FitOneOpenDeviceRequest request = new FitOneOpenDeviceRequest();
+        request.setDev_id(Global.getSpString(Constants.Sp.SP_DEVICE_ID, ""));
+        request.setDev_type(Global.getSpString(Constants.Sp.SP_DEVICE_KEY, ""));
+        request.setFaceId(userId);
+        OkGoNetAccess.post(Config.REAL_FITONE_BASE + "/cgi/orientOpenDevice", request.toParams(FitOneOpenDeviceRequest.class), UserInfoData.class, new Callback() {
+            @Override
+            public void callback(Result result) {
+                hideProgressDialog();
+                if (result.isSuccess()) {
+                    showToast("设备开启成功:"+userId);
+                    //开启设备
+//                    openDevice();
                 } else {
                     showToast(result.getMessage());
 
@@ -659,7 +836,7 @@ public class FaceDetectActivity extends BaseActivity implements SurfaceHolder.Ca
     }
 
     private void saveLogToWeb(String json) {
-        com.fpa.mainsupport.core.utils.Log.e(TAG, json);
+        Log.e(TAG, json);
     }
 
     //隐藏预览框
