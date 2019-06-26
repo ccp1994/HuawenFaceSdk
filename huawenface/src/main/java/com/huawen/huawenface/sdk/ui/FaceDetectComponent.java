@@ -61,6 +61,7 @@ import com.huawen.huawenface.sdk.net.Callback;
 import com.huawen.huawenface.sdk.net.OkGoNetAccess;
 import com.huawen.huawenface.sdk.net.Result;
 import com.huawen.huawenface.sdk.net.Sign;
+import com.huawen.huawenface.sdk.net.request.FitOneDataUploadRequest;
 import com.huawen.huawenface.sdk.net.request.FitOneOpenDeviceRequest;
 import com.huawen.huawenface.sdk.net.request.FitOneRegisterRequest;
 import com.huawen.huawenface.sdk.utils.ImageUtils;
@@ -233,7 +234,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                 Global.setSpString(Constants.Sp.DEVICE_TYPE, deviceTypeItemBeans.get(i).getContent());
                 Global.setSpString(Constants.Sp.SP_DEVICE_KEY, deviceTypeItemBeans.get(i).getKey());
                 Global.setSpBoolean(Constants.Sp.IS_FIRST_RUN, false);
-                mFRAbsLoop.resumeThread();
+                startDelay();
 //                initFace();
 //                FaceDetectActivityPermissionsDispatcher.startPreviewWithPermissionCheck(FaceDetectActivity.this);
             }
@@ -251,6 +252,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         View view = View.inflate(mActivity, R.layout.dialog_device_info_set, null);
         final AppCompatEditText groupIdINputView = view.findViewById(R.id.dialog_input_group_id);
         final AppCompatEditText deviceIdInputView = view.findViewById(R.id.dialog_input_device_id);
+        final AppCompatEditText mDelayTimeView = view.findViewById(R.id.dialog_input_delay_time);
         builder.setView(view);
         builder.setCancelable(true);
         groupIdINputView.requestFocus();
@@ -275,8 +277,13 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                                     showToast(R.string.hint_device_id_input);
                                     return;
                                 }
+                                if (TextUtils.isEmpty(mDelayTimeView.getText().toString())) {
+                                    showToast(R.string.hint_device_delay_time);
+                                    return;
+                                }
                                 Global.setSpString(Constants.Sp.SP_DEVICE_ID, deviceIdInputView.getText().toString());
                                 Global.setSpString(Constants.Sp.SP_GROUP_ID, groupIdINputView.getText().toString());
+                                Global.setSpInteger(Constants.Sp.SP_DELAY_TIME, Integer.valueOf(mDelayTimeView.getText().toString()));
 
                                 beforeShowChooseDialog();
                                 dialog.dismiss();
@@ -339,7 +346,35 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
 
             mFRAbsLoop.pauseThread();
         } else {
+            startDelay();
         }
+
+    }
+
+    /**
+     * 开始延时人脸识别,需要延时开始识别人脸
+     */
+    private void startDelay() {
+        mFRAbsLoop.pauseThread();
+        int count = Global.getSpInteger(Constants.Sp.SP_DELAY_TIME, 1500);
+        int sleepTime = 100;
+        TimeCounter.getTimeCounter(count / sleepTime, sleepTime).setOnTimeListener(new TimeCounter.OnTimeListener() {
+            @Override
+            public void onTimesUp() {
+                mActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        showToast("即将开始人脸识别");
+                        mFRAbsLoop.resumeThread();
+                    }
+                });
+            }
+
+            @Override
+            public void onTimeChange(int countRemain) {
+
+            }
+        }).start();
     }
 
 
@@ -405,7 +440,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
     /**
      * 停止检测人脸
      */
-    private void stopDetect() {
+    public void stopDetect() {
         removeFromWindow();
         onDestroy();
     }
@@ -873,6 +908,26 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
 
 
     /**
+     * 提供给硬件外部的上传数据接口，只提供data参数字段，默认数据json格式传递过来，最终给接口形式如：  {"data":"{"keyA":"I am keyA value"},{"keyB":"I am keuB"}"}
+     * @param data
+     */
+    public void uploadDeviceData(String data){
+        final FitOneDataUploadRequest request = new FitOneDataUploadRequest();
+        request.setData(data);
+        OkGoNetAccess.post(Config.REAL_FITONE_BASE + "/app/cgi/uploadData", request.toParams(FitOneDataUploadRequest.class), Result.class, new Callback() {
+            @Override
+            public void callback(Result result) {
+//                hideProgressDialog();
+                if (result.isSuccess()) {
+                    showToast("用户数据上传成功");
+                } else {
+                    showToast(result.getMessage());
+
+                }
+            }
+        });
+    }
+    /**
      * 上传数据到平安银行
      *
      * @param data
@@ -977,7 +1032,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
     }
 
     //暂停识别
-    public void pauseCheck() {
+    private void pauseCheck() {
         String json = "{\"log\":\"暂停识别\"}";
         saveLogToWeb(json);
         mActivity.runOnUiThread(new Runnable() {
@@ -989,7 +1044,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
     }
 
     //启动识别
-    public void startCheck() {
+    private void startCheck() {
         String json = "{\"log\":\"启动识别\"}";
         saveLogToWeb(json);
         mActivity.runOnUiThread(new Runnable() {

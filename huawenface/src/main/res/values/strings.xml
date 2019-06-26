@@ -12,4 +12,6 @@
     <string name="choose_device_type">选择设备类型</string>
     <string name="club_id">俱乐部ID</string>
     <string name="device_id">设备ID</string>
+    <string name="hint_device_delay_time">请输入启动后人脸识别延迟(单位ms)</string>
+    <string name="delay_time">识别延时</string>
 </resources>

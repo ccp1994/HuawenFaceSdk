@@ -31,6 +31,7 @@ public class Constants {
         String SP_DEVICE_KEY = "device_type_key";
         String SP_DEVICE_ID = "device_id";//设备id
         String SP_GROUP_ID = "group_id";
+        String SP_DELAY_TIME = "delay_time";//延时启动人脸识别的时间
     }
 
     public interface  Action {

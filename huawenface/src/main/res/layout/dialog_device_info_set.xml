@@ -33,5 +33,18 @@
             android:textColorHint="#999"
             android:theme="@style/EditTextView" />
 
+        <android.support.v7.widget.AppCompatEditText
+            android:id="@+id/dialog_input_delay_time"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:hint="@string/hint_device_delay_time"
+            android:inputType="number"
+            android:padding="5dp"
+            android:textColor="#333"
+            android:textColorHint="#999"
+            android:theme="@style/EditTextView" />
+
     </LinearLayout>
 </LinearLayout>

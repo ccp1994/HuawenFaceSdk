@@ -18,6 +18,7 @@ import java.util.List;
 public class FaceSettingActivity extends BaseActivity {
     private AppCompatEditText mClubeInputView;
     private AppCompatEditText mDeviceInputView;
+    private AppCompatEditText mDelayTimeInputView;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -25,15 +26,19 @@ public class FaceSettingActivity extends BaseActivity {
         setContentView(R.layout.activity_face_setting);
         mClubeInputView = (AppCompatEditText) findViewById(R.id.dialog_input_group_id);
         mDeviceInputView = (AppCompatEditText) findViewById(R.id.dialog_input_device_id);
+        mDelayTimeInputView = (AppCompatEditText) findViewById(R.id.dialog_input_delay_time);
         String clubeId = Global.getSpString(Constants.Sp.SP_GROUP_ID, "");
         String deviceId = Global.getSpString(Constants.Sp.SP_DEVICE_ID, "");
+        String delayTime = Global.getSpString(Constants.Sp.SP_DELAY_TIME, "");
         mClubeInputView.setText(clubeId);
         mDeviceInputView.setText(deviceId);
+        mDelayTimeInputView.setText(delayTime);
         findViewById(R.id.confirm).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Global.setSpString(Constants.Sp.SP_GROUP_ID,mClubeInputView.getText().toString());
                 Global.setSpString(Constants.Sp.SP_DEVICE_ID,mDeviceInputView.getText().toString());
+                Global.setSpInteger(Constants.Sp.SP_DELAY_TIME,Integer.valueOf(mDelayTimeInputView.getText().toString()));
                 finish();
             }
         });
