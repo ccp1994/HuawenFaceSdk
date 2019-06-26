@@ -10,4 +10,6 @@
     <string name="have_no_internet_attack">没有检测到网络</string>
     <string name="dialog_title_recog_result">识别结果</string>
     <string name="choose_device_type">选择设备类型</string>
+    <string name="club_id">俱乐部ID</string>
+    <string name="device_id">设备ID</string>
 </resources>
