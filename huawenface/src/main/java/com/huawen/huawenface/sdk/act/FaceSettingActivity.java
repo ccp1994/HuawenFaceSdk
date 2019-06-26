@@ -29,10 +29,10 @@ public class FaceSettingActivity extends BaseActivity {
         mDelayTimeInputView = (AppCompatEditText) findViewById(R.id.dialog_input_delay_time);
         String clubeId = Global.getSpString(Constants.Sp.SP_GROUP_ID, "");
         String deviceId = Global.getSpString(Constants.Sp.SP_DEVICE_ID, "");
-        String delayTime = Global.getSpString(Constants.Sp.SP_DELAY_TIME, "");
+        int delayTime = Global.getSpInteger(Constants.Sp.SP_DELAY_TIME, 1500);
         mClubeInputView.setText(clubeId);
         mDeviceInputView.setText(deviceId);
-        mDelayTimeInputView.setText(delayTime);
+        mDelayTimeInputView.setText(String.valueOf(delayTime));
         findViewById(R.id.confirm).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

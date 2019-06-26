@@ -297,13 +297,22 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
 
     }
 
-
-    private void pauseThread() {
+    /**
+     * 暂停识别
+     */
+    public void pauseDetect() {
         mFRAbsLoop.pauseThread();
     }
 
+    /**
+     * 恢复识别，用于识别成功后暂停识别后，需要重新开始识别的情况
+     */
+    public void resumeDetect() {
+        mFRAbsLoop.resumeThread();
+    }
 
     protected void onDestroy() {
+
         if (mFRAbsLoop != null) {
             mFRAbsLoop.resumeThread();
             mFRAbsLoop.shutdown();
@@ -909,9 +918,10 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
 
     /**
      * 提供给硬件外部的上传数据接口，只提供data参数字段，默认数据json格式传递过来，最终给接口形式如：  {"data":"{"keyA":"I am keyA value"},{"keyB":"I am keuB"}"}
+     *
      * @param data
      */
-    public void uploadDeviceData(String data){
+    public void uploadDeviceData(String data) {
         final FitOneDataUploadRequest request = new FitOneDataUploadRequest();
         request.setData(data);
         OkGoNetAccess.post(Config.REAL_FITONE_BASE + "/app/cgi/uploadData", request.toParams(FitOneDataUploadRequest.class), Result.class, new Callback() {
@@ -927,6 +937,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
             }
         });
     }
+
     /**
      * 上传数据到平安银行
      *
