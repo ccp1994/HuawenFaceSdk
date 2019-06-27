@@ -158,7 +158,19 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
     private int mFaceViewWidth;
     private int mFaceViewHeight;
     private float mPercent = 0.3f;
+    private FaceDetectListener mListener;
 
+
+    public interface FaceDetectListener {
+        /**
+         * 回调在UI线程
+         */
+        void success();
+        /**
+         * 回调在UI线程
+         */
+        void failed(String json);
+    }
 
     public FaceDetectComponent(Context context, int startX, int startY, float percent) {
         super(context);
@@ -463,11 +475,69 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
     }
 
     /**
+     * 自带权限检测授权并开启人脸检测
+     */
+    public void startWithPermissionCheck(final FaceDetectListener listener) {
+        mListener = listener;
+        EasyPermission.with(mActivity)
+                .addPermissions(Permission.SYSTEM_ALERT_WINDOW)      //申请定位权限组
+                .addPermissions(Permission.WRITE_EXTERNAL_STORAGE)          //申请打电话权限
+                .addPermissions(Permission.READ_EXTERNAL_STORAGE)          //申请打电话权限
+                .addPermissions(Permission.CAMERA)          //申请打电话权限
+                .addRequestPermissionRationaleHandler(Permission.ACCESS_FINE_LOCATION, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        Toast.makeText(mActivity, "请授予权限", Toast.LENGTH_SHORT).show();
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.SYSTEM_ALERT_WINDOW, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.WRITE_EXTERNAL_STORAGE, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.READ_EXTERNAL_STORAGE, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.CAMERA, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .request(new PermissionRequestListener() {
+                    @Override
+                    public void onGrant(Map<String, GrantResult> result) {
+                        //权限申请返回
+                        startDetect(listener);
+                    }
+
+                    @Override
+                    public void onCancel(String stopPermission) {
+                        if(mListener!=null){
+                            mListener.failed("授权失败");
+                        }
+                    }
+                });
+    }
+
+    /**
      * 开始显示人脸检测
      *
      * @return
      */
-    public boolean startDetect() {
+    public boolean startDetect(FaceDetectListener listener) {
+        mListener = listener;
         if (wm != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 if (!isAttachedToWindow()) {
@@ -574,59 +644,6 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         }
         return false;
 
-    }
-
-    /**
-     * 自带权限检测授权并开启人脸检测
-     */
-    public void startWithPermissionCheck() {
-        EasyPermission.with(mActivity)
-                .addPermissions(Permission.SYSTEM_ALERT_WINDOW)      //申请定位权限组
-                .addPermissions(Permission.WRITE_EXTERNAL_STORAGE)          //申请打电话权限
-                .addPermissions(Permission.READ_EXTERNAL_STORAGE)          //申请打电话权限
-                .addPermissions(Permission.CAMERA)          //申请打电话权限
-                .addRequestPermissionRationaleHandler(Permission.ACCESS_FINE_LOCATION, new RequestPermissionRationalListener() {
-                    @Override
-                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
-                        Toast.makeText(mActivity, "请授予权限", Toast.LENGTH_SHORT).show();
-                        nextAction.next(NextActionType.NEXT);
-                    }
-                })
-                .addRequestPermissionRationaleHandler(Permission.SYSTEM_ALERT_WINDOW, new RequestPermissionRationalListener() {
-                    @Override
-                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
-                        nextAction.next(NextActionType.NEXT);
-                    }
-                })
-                .addRequestPermissionRationaleHandler(Permission.WRITE_EXTERNAL_STORAGE, new RequestPermissionRationalListener() {
-                    @Override
-                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
-                        nextAction.next(NextActionType.NEXT);
-                    }
-                })
-                .addRequestPermissionRationaleHandler(Permission.READ_EXTERNAL_STORAGE, new RequestPermissionRationalListener() {
-                    @Override
-                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
-                        nextAction.next(NextActionType.NEXT);
-                    }
-                })
-                .addRequestPermissionRationaleHandler(Permission.CAMERA, new RequestPermissionRationalListener() {
-                    @Override
-                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
-                        nextAction.next(NextActionType.NEXT);
-                    }
-                })
-                .request(new PermissionRequestListener() {
-                    @Override
-                    public void onGrant(Map<String, GrantResult> result) {
-                        //权限申请返回
-                        startDetect();
-                    }
-
-                    @Override
-                    public void onCancel(String stopPermission) {
-                    }
-                });
     }
 
 
@@ -908,6 +925,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     final String json = "识别成功，识别率小于设定阈值";
                     saveLogToWeb(json);
                     mFRAbsLoop.resumeThread();
+
                     lastRequestTime = System.currentTimeMillis() - (dataConfig.sensitivity + 2) * 1000;
                     mActivity.runOnUiThread(new Runnable() {
                         @Override
@@ -1059,6 +1077,9 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
             public void callback(Result result) {
                 if (result.isSuccess()) {
                     showToast("设备开启成功:" + userId);
+                    if (mListener != null) {
+                        mListener.success();
+                    }
                     //开启设备
 //                    openDevice();
                 } else {
