@@ -66,6 +66,13 @@ import com.huawen.huawenface.sdk.net.request.FitOneOpenDeviceRequest;
 import com.huawen.huawenface.sdk.net.request.FitOneRegisterRequest;
 import com.huawen.huawenface.sdk.utils.ImageUtils;
 import com.huawen.huawenface.sdk.utils.ScreenUtils;
+import com.huawen.huawenface.sdk.utils.easypermission.EasyPermission;
+import com.huawen.huawenface.sdk.utils.easypermission.GrantResult;
+import com.huawen.huawenface.sdk.utils.easypermission.NextAction;
+import com.huawen.huawenface.sdk.utils.easypermission.NextActionType;
+import com.huawen.huawenface.sdk.utils.easypermission.Permission;
+import com.huawen.huawenface.sdk.utils.easypermission.PermissionRequestListener;
+import com.huawen.huawenface.sdk.utils.easypermission.RequestPermissionRationalListener;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -75,6 +82,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.Call;
 import okhttp3.MediaType;
@@ -566,6 +574,59 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         }
         return false;
 
+    }
+
+    /**
+     * 自带权限检测授权并开启人脸检测
+     */
+    public void startWithPermissionCheck() {
+        EasyPermission.with(mActivity)
+                .addPermissions(Permission.SYSTEM_ALERT_WINDOW)      //申请定位权限组
+                .addPermissions(Permission.WRITE_EXTERNAL_STORAGE)          //申请打电话权限
+                .addPermissions(Permission.READ_EXTERNAL_STORAGE)          //申请打电话权限
+                .addPermissions(Permission.CAMERA)          //申请打电话权限
+                .addRequestPermissionRationaleHandler(Permission.ACCESS_FINE_LOCATION, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        Toast.makeText(mActivity, "请授予权限", Toast.LENGTH_SHORT).show();
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.SYSTEM_ALERT_WINDOW, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.WRITE_EXTERNAL_STORAGE, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.READ_EXTERNAL_STORAGE, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .addRequestPermissionRationaleHandler(Permission.CAMERA, new RequestPermissionRationalListener() {
+                    @Override
+                    public void onRequestPermissionRational(String permission, boolean requestPermissionRationaleResult, final NextAction nextAction) {
+                        nextAction.next(NextActionType.NEXT);
+                    }
+                })
+                .request(new PermissionRequestListener() {
+                    @Override
+                    public void onGrant(Map<String, GrantResult> result) {
+                        //权限申请返回
+                        startDetect();
+                    }
+
+                    @Override
+                    public void onCancel(String stopPermission) {
+                    }
+                });
     }
 
 
