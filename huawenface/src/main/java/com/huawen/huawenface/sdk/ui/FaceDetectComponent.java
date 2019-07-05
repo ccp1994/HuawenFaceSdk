@@ -1037,7 +1037,9 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     openDevice(userData.getData().getFaceId());
                 } else {
                     showToast(result.getMessage());
-
+//                    if(mListener!=null){
+//                        mListener.failed(result.getMessage());
+//                    }
                 }
             }
         });
@@ -1083,6 +1085,9 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     //开启设备
 //                    openDevice();
                 } else {
+                    if(mListener!=null){
+                        mListener.failed(result.getMessage());
+                    }
                     showToast(result.getMessage());
 
                 }
