@@ -429,11 +429,11 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         wmParams = new WindowManager.LayoutParams();
         //设置你要添加控件的类型，TYPE_ALERT需要申明权限，TOast不需要，在某些定制系统中会禁止悬浮框显示，所以最后用TYPE_TOAST
         wmParams.type = WindowManager.LayoutParams.TYPE_TOAST;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {//6.0+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//6.0+
 //            wmParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
             wmParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
         } else {
-            wmParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+            wmParams.type = WindowManager.LayoutParams.TYPE_PHONE;
 //            wmParams.type = WindowManager.LayoutParams.TYPE_TOAST;
         }
         //设置控件在坐标计算规则，相当于屏幕左上角
@@ -737,11 +737,11 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                                 if (previewSize == null) {
                                     previewSize = s;
                                 } else {
-                                    if (s.width == s.height) {
+//                                    if (s.width == s.height) {
                                         if (s.width < previewSize.width || s.height < previewSize.height) {
                                             previewSize = s;
                                         }
-                                    }
+//                                    }
 
                                 }
                             }
@@ -798,16 +798,16 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     public void onAfterRender(CameraFrameData data) {
                         Rect[] rects = (Rect[]) data.getParams();
                         //mGLSurfaceView.getGLES2Render().draw_rect(rects, Color.GREEN, 2);
-                        if (rects.length > 0) {
-                            Rect rect = new Rect();
-                            rect.left = (int) (rects[0].left * mPercent);
-                            rect.right = (int) (rects[0].right * mPercent);
-                            rect.bottom = (int) (rects[0].bottom * mPercent);
-                            rect.top = (int) (rects[0].top * mPercent);
-                            faceRectView.drawFaceRect(rect);
-                        } else {
-                            faceRectView.clearRect();
-                        }
+//                        if (rects.length > 0) {
+//                            Rect rect = new Rect();
+//                            rect.left = (int) (rects[0].left);
+//                            rect.right = (int) (rects[0].right );
+//                            rect.bottom = (int) (rects[0].bottom );
+//                            rect.top = (int) (rects[0].top );
+//                            faceRectView.drawFaceRect(rect);
+//                        } else {
+//                            faceRectView.clearRect();
+//                        }
 
                     }
 

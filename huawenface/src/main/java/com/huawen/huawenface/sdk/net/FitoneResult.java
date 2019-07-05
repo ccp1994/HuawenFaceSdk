@@ -5,7 +5,7 @@ public class FitoneResult extends Result {
 
     @Override
     public boolean isSuccess() {
-        return "0".equals(cn);
+        return "0".equals(cn)||(null!=getCode()&&super.isSuccess());
     }
 
     public String getCn() {
