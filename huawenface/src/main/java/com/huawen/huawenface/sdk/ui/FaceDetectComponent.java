@@ -737,11 +737,11 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                                 if (previewSize == null) {
                                     previewSize = s;
                                 } else {
-//                                    if (s.width == s.height) {
+                                    if (s.width == s.height) {
                                         if (s.width < previewSize.width || s.height < previewSize.height) {
                                             previewSize = s;
                                         }
-//                                    }
+                                    }
 
                                 }
                             }
