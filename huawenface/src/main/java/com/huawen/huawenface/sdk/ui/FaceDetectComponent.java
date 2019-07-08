@@ -983,7 +983,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                 String personIdStr = cos.get(0).getPerson_id();
                 String[] personIdStrs = personIdStr.split("\\.");
                 if (personIdStrs.length == 3) {
-                    getUserInfo(personIdStrs[2]);
+                    getUserInfo(personIdStrs[2],imageBase64);
                 }
                 return;
             }
@@ -1045,7 +1045,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         });
     }
 
-    private void getUserInfo(String personIdStr) {
+    private void getUserInfo(String personIdStr, final String imageStr) {
         final FitOneOpenDeviceRequest request = new FitOneOpenDeviceRequest();
         request.setDev_id(Global.getSpString(Constants.Sp.SP_DEVICE_ID, ""));
         request.setPersonId(personIdStr);
@@ -1058,7 +1058,8 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     //开启设备
                     openDevice(data.getData().getFaceId());
                 } else {
-                    showToast(result.getMessage());
+                    showToast("用户不存在，即将重新注册");
+                    postPingAnData(imageStr);
 
                 }
             }
