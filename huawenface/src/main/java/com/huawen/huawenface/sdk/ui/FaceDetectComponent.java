@@ -990,7 +990,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         } else {
             resultStr = "没有识别结果";
         }
-        showToast(resultStr);
+//        showToast(resultStr);
 
     }
 
@@ -1031,7 +1031,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
             public void callback(Result result) {
 //                hideProgressDialog();
                 if (result.isSuccess()) {
-                    showToast("用户注册成功即将开启设备");
+//                    showToast("即将开启设备");
                     //开启设备
                     UserInfoData userData = (UserInfoData) result;
                     openDevice(userData.getData().getFaceId());
@@ -1079,7 +1079,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
             @Override
             public void callback(Result result) {
                 if (result.isSuccess()) {
-                    showToast("设备开启成功:" + userId);
+                    showToast("设备开启成功" );
                     if (mListener != null) {
                         mListener.success();
                     }
