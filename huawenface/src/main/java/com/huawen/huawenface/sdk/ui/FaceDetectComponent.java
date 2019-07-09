@@ -355,7 +355,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         mFaceViewWidth = (int) (sw * mPercent);
         mFaceViewHeight = (int) (sh * mPercent);
         dataConfig = new DataConfig();
-        dataConfig.setGroupId("nsVGj9jCFBUp.1735");
+        dataConfig.setGroupId("nsVGj9jCFBUp"+"."+Global.getSpString(Constants.Sp.SP_GROUP_ID,""));
         dataConfig.setWidth(mFaceViewWidth);
         dataConfig.setHeight(mFaceViewWidth);
         dataConfig.setWaitSecond(1);
@@ -798,16 +798,16 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     public void onAfterRender(CameraFrameData data) {
                         Rect[] rects = (Rect[]) data.getParams();
                         //mGLSurfaceView.getGLES2Render().draw_rect(rects, Color.GREEN, 2);
-//                        if (rects.length > 0) {
-//                            Rect rect = new Rect();
-//                            rect.left = (int) (rects[0].left);
-//                            rect.right = (int) (rects[0].right );
-//                            rect.bottom = (int) (rects[0].bottom );
-//                            rect.top = (int) (rects[0].top );
-//                            faceRectView.drawFaceRect(rect);
-//                        } else {
-//                            faceRectView.clearRect();
-//                        }
+                        if (rects.length > 0) {
+                            Rect rect = new Rect();
+                            rect.left = (int) (rects[0].left);
+                            rect.right = (int) (rects[0].right );
+                            rect.bottom = (int) (rects[0].bottom );
+                            rect.top = (int) (rects[0].top );
+                            faceRectView.drawFaceRect(rect);
+                        } else {
+                            faceRectView.clearRect();
+                        }
 
                     }
 
@@ -825,7 +825,9 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                 AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, dataConfig.getScale(), 2);
                 err = engine.AFT_FSDK_GetVersion(version);
 
-                faceRectView.setFaceViewSize(dataConfig.width, dataConfig.height);
+                int width= (int) (dataConfig.width);
+                int height= (int) (dataConfig.height);
+                faceRectView.setFaceViewSize(width,height);
                 RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(dataConfig.width, dataConfig.height);
                 layoutParams.leftMargin = dataConfig.marginLeft;
                 layoutParams.topMargin = dataConfig.marginTop;
@@ -927,14 +929,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     mFRAbsLoop.resumeThread();
 
                     lastRequestTime = System.currentTimeMillis() - (dataConfig.sensitivity + 2) * 1000;
-                    mActivity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-//                            showToast(json);
-                            showRecogResultDialog(json, resultData, "");
 
-                        }
-                    });
                 } else {
                     //调用js方法
                     final String json = "{\"log\":\"识别成功，识别率大于设定阈值\"}";
@@ -965,6 +960,10 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
 //        builder.setIcon(R.drawable.ic_launcher);
 //        builder.setTitle(R.string.dialog_title_recog_result);
 //        builder.setPositiveButton(R.string.confirm, null);
+        if(TextUtils.isEmpty(imageBase64)){
+            showToast("识别成功，但是人脸图片为空");
+            return;
+        }
         ResultData.DataBean data = resultData.getData();
         List<ResultData.DataBean.CandidatesBean> cos = data.getCandidates();
 
