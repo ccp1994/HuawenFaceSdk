@@ -19,6 +19,7 @@ public class FaceSettingActivity extends BaseActivity {
     private AppCompatEditText mClubeInputView;
     private AppCompatEditText mDeviceInputView;
     private AppCompatEditText mDelayTimeInputView;
+    private AppCompatEditText mScaleInputView;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -27,18 +28,22 @@ public class FaceSettingActivity extends BaseActivity {
         mClubeInputView = (AppCompatEditText) findViewById(R.id.dialog_input_group_id);
         mDeviceInputView = (AppCompatEditText) findViewById(R.id.dialog_input_device_id);
         mDelayTimeInputView = (AppCompatEditText) findViewById(R.id.dialog_input_delay_time);
+        mScaleInputView = (AppCompatEditText) findViewById(R.id.dialog_input_scale);
         String clubeId = Global.getSpString(Constants.Sp.SP_GROUP_ID, "");
         String deviceId = Global.getSpString(Constants.Sp.SP_DEVICE_ID, "");
         int delayTime = Global.getSpInteger(Constants.Sp.SP_DELAY_TIME, 1500);
+        int scale = Global.getSpInteger(Constants.Sp.SCALE, 16);
         mClubeInputView.setText(clubeId);
         mDeviceInputView.setText(deviceId);
         mDelayTimeInputView.setText(String.valueOf(delayTime));
+        mScaleInputView.setText(String.valueOf(scale));
         findViewById(R.id.confirm).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Global.setSpString(Constants.Sp.SP_GROUP_ID,mClubeInputView.getText().toString());
                 Global.setSpString(Constants.Sp.SP_DEVICE_ID,mDeviceInputView.getText().toString());
                 Global.setSpInteger(Constants.Sp.SP_DELAY_TIME,Integer.valueOf(mDelayTimeInputView.getText().toString()));
+                Global.setSpInteger(Constants.Sp.SCALE,Integer.valueOf(mScaleInputView.getText().toString()));
                 finish();
             }
         });

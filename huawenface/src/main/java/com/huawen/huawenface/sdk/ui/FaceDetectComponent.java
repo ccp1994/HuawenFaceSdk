@@ -273,11 +273,13 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         final AppCompatEditText groupIdINputView = view.findViewById(R.id.dialog_input_group_id);
         final AppCompatEditText deviceIdInputView = view.findViewById(R.id.dialog_input_device_id);
         final AppCompatEditText mDelayTimeView = view.findViewById(R.id.dialog_input_delay_time);
+        final AppCompatEditText scaleInputView = view.findViewById(R.id.dialog_input_scale);
         builder.setView(view);
         builder.setCancelable(true);
         groupIdINputView.requestFocus();
         builder.setPositiveButton(R.string.confirm, null);
-
+        scaleInputView.setText(String.valueOf(16));
+        mDelayTimeView.setText(String.valueOf(2000));
         final AlertDialog dialog = builder.create();
 
         //为了防止 getButton() 为空,需要在 OnShowListener 里设置事件
@@ -304,6 +306,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                                 Global.setSpString(Constants.Sp.SP_DEVICE_ID, deviceIdInputView.getText().toString());
                                 Global.setSpString(Constants.Sp.SP_GROUP_ID, groupIdINputView.getText().toString());
                                 Global.setSpInteger(Constants.Sp.SP_DELAY_TIME, Integer.valueOf(mDelayTimeView.getText().toString()));
+                                Global.setSpInteger(Constants.Sp.SCALE,Integer.valueOf(scaleInputView.getText().toString()));
 
                                 beforeShowChooseDialog();
                                 dialog.dismiss();
@@ -362,7 +365,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         dataConfig.setSensitivity(7);
         dataConfig.setMarginLeft(0);
         dataConfig.setMarginTop(0);
-        dataConfig.setScale(16);
+        dataConfig.setScale(Global.getSpInteger(Constants.Sp.SCALE,16));
         dataConfig.setRecognitionDegree(65);
 
         initFace();
@@ -667,6 +670,9 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         public void loop() {
             SystemClock.sleep(dataConfig.waitSecond * 1000);
             if (mImageNV21 != null) {
+
+                final int rotate = mCameraRotate;
+
                 byte[] data = mImageNV21;
                 YuvImage yuv = new YuvImage(data, ImageFormat.NV21, mWidth, mHeight, null);
                 ExtByteArrayOutputStream ops = new ExtByteArrayOutputStream();
