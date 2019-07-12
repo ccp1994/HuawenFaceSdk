@@ -156,7 +156,11 @@ public class Global extends GlobalApp {
 //        initRongCloud();
         initApp();
         initOkGo();
-        getInitData(null);
+        try {
+            getInitData(null);
+        }catch(Exception e){
+            Toast.makeText(this,"初始化失败",Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void getInitData(final com.fpa.mainsupport.core.Callback callback) {

@@ -78,6 +78,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -159,6 +160,8 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
     private int mFaceViewHeight;
     private float mPercent = 0.3f;
     private FaceDetectListener mListener;
+    private Bitmap bmp;
+    private boolean dontPreView;//如果为true则不会预览识别，resumeDetect可以恢复
 
 
     public interface FaceDetectListener {
@@ -166,6 +169,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
          * 回调在UI线程
          */
         void success();
+
         /**
          * 回调在UI线程
          */
@@ -206,7 +210,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         setFloatViewClickListener(new IFloatViewClick() {
             @Override
             public void onFloatViewClick() {
-                Toast.makeText(mActivity, "facedetect is clicked, will close face detect", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(mActivity, "facedetect is clicked, will close face detect", Toast.LENGTH_SHORT).show();
                 stopDetect();
             }
         });
@@ -306,7 +310,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                                 Global.setSpString(Constants.Sp.SP_DEVICE_ID, deviceIdInputView.getText().toString());
                                 Global.setSpString(Constants.Sp.SP_GROUP_ID, groupIdINputView.getText().toString());
                                 Global.setSpInteger(Constants.Sp.SP_DELAY_TIME, Integer.valueOf(mDelayTimeView.getText().toString()));
-                                Global.setSpInteger(Constants.Sp.SCALE,Integer.valueOf(scaleInputView.getText().toString()));
+                                Global.setSpInteger(Constants.Sp.SCALE, Integer.valueOf(scaleInputView.getText().toString()));
 
                                 beforeShowChooseDialog();
                                 dialog.dismiss();
@@ -331,7 +335,10 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
      * 恢复识别，用于识别成功后暂停识别后，需要重新开始识别的情况
      */
     public void resumeDetect() {
-        mFRAbsLoop.resumeThread();
+        if (mFRAbsLoop != null)
+            mFRAbsLoop.resumeThread();
+        dontPreView = false;
+
     }
 
     protected void onDestroy() {
@@ -339,6 +346,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         if (mFRAbsLoop != null) {
             mFRAbsLoop.resumeThread();
             mFRAbsLoop.shutdown();
+            mFRAbsLoop = null;
         }
         AFT_FSDKError err = engine.AFT_FSDK_UninitialFaceEngine();
     }
@@ -358,14 +366,14 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         mFaceViewWidth = (int) (sw * mPercent);
         mFaceViewHeight = (int) (sh * mPercent);
         dataConfig = new DataConfig();
-        dataConfig.setGroupId("nsVGj9jCFBUp"+"."+Global.getSpString(Constants.Sp.SP_GROUP_ID,""));
+        dataConfig.setGroupId("nsVGj9jCFBUp" + "." + Global.getSpString(Constants.Sp.SP_GROUP_ID, ""));
         dataConfig.setWidth(mFaceViewWidth);
         dataConfig.setHeight(mFaceViewWidth);
         dataConfig.setWaitSecond(1);
         dataConfig.setSensitivity(7);
         dataConfig.setMarginLeft(0);
         dataConfig.setMarginTop(0);
-        dataConfig.setScale(Global.getSpInteger(Constants.Sp.SCALE,16));
+        dataConfig.setScale(Global.getSpInteger(Constants.Sp.SCALE, 16));
         dataConfig.setRecognitionDegree(65);
 
         initFace();
@@ -397,7 +405,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     @Override
                     public void run() {
                         showToast("即将开始人脸识别");
-                        mFRAbsLoop.resumeThread();
+                        resumeDetect();
                     }
                 });
             }
@@ -527,7 +535,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
 
                     @Override
                     public void onCancel(String stopPermission) {
-                        if(mListener!=null){
+                        if (mListener != null) {
                             mListener.failed("授权失败");
                         }
                     }
@@ -678,12 +686,13 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                 ExtByteArrayOutputStream ops = new ExtByteArrayOutputStream();
                 yuv.compressToJpeg(mAFT_FSDKFace.getRect(), 80, ops);
                 //获取图片并注册人脸
-                final Bitmap bmp = BitmapFactory.decodeByteArray(ops.getByteArray(), 0, ops.getByteArray().length);
                 mImageNV21 = null;
-                if (bmp != null) {
+                final Bitmap bmpTmp = BitmapFactory.decodeByteArray(ops.getByteArray(), 0, ops.getByteArray().length);
+
+                if (bmpTmp != null) {
                     Matrix m = new Matrix();
-                    m.setRotate(-90, (float) bmp.getWidth() / 2, (float) bmp.getHeight() / 2);
-                    final Bitmap bm1 = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
+                    m.setRotate(-90, (float) bmpTmp.getWidth() / 2, (float) bmpTmp.getHeight() / 2);
+                    final Bitmap bm1 = Bitmap.createBitmap(bmpTmp, 0, 0, bmpTmp.getWidth(), bmpTmp.getHeight(), m, true);
 //                    bytesToImageFile(ImageUtils.Bitmap2Bytes(bm1));
                     mActivity.runOnUiThread(new Runnable() {
                         @Override
@@ -692,6 +701,8 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                         }
                     });
                 }
+
+
             }
         }
 
@@ -807,9 +818,9 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                         if (rects.length > 0) {
                             Rect rect = new Rect();
                             rect.left = (int) (rects[0].left);
-                            rect.right = (int) (rects[0].right );
-                            rect.bottom = (int) (rects[0].bottom );
-                            rect.top = (int) (rects[0].top );
+                            rect.right = (int) (rects[0].right);
+                            rect.bottom = (int) (rects[0].bottom);
+                            rect.top = (int) (rects[0].top);
                             faceRectView.drawFaceRect(rect);
                         } else {
                             faceRectView.clearRect();
@@ -831,18 +842,21 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                 AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, dataConfig.getScale(), 2);
                 err = engine.AFT_FSDK_GetVersion(version);
 
-                int width= (int) (dataConfig.width);
-                int height= (int) (dataConfig.height);
-                faceRectView.setFaceViewSize(width,height);
+                int width = (int) (dataConfig.width);
+                int height = (int) (dataConfig.height);
+                faceRectView.setFaceViewSize(width, height);
                 RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(dataConfig.width, dataConfig.height);
                 layoutParams.leftMargin = dataConfig.marginLeft;
                 layoutParams.topMargin = dataConfig.marginTop;
                 rl_scan_view.setLayoutParams(layoutParams);
-                if (mFRAbsLoop == null) {
+                if (mFRAbsLoop == null && !dontPreView) {
                     mFRAbsLoop = new FRAbsLoop();
                     mFRAbsLoop.start();
                 } else {
+                    if(mFRAbsLoop!=null)
                     mFRAbsLoop.resumeThread();
+//                    resumeDetect();
+
                 }
                 rl_scan_view.setVisibility(View.VISIBLE);
             }
@@ -933,6 +947,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                     final String json = "识别成功，识别率小于设定阈值";
                     saveLogToWeb(json);
                     mFRAbsLoop.resumeThread();
+//                    resumeDetect();
 
                     lastRequestTime = System.currentTimeMillis() - (dataConfig.sensitivity + 2) * 1000;
 
@@ -946,14 +961,46 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                         public void run() {
 //                            hidePreview();
 //                            showToast(json);
-                            final String imagePath = ImageUtils.saveBitmapTofile(bmp, System.currentTimeMillis() + ".jpg");
-                            final String picStr = Base64.encodeToString(File2byte(imagePath), Base64.NO_WRAP);
-                            final String imageFormat = "jpeg";
-                            String imageBase64 = "data:image/" + imageFormat + ";base64," + picStr;
-                            showRecogResultDialog(json, resultData, imageBase64);
+                            try {
+                                //使用takePicture()方法完成拍照
+                                mCamera2.autoFocus(new Camera.AutoFocusCallback() {
+                                    //自动聚焦完成后拍照
+                                    @Override
+                                    public void onAutoFocus(boolean success, Camera camera) {
+                                        if (success && camera != null) {
+                                            mCamera2.takePicture(null, null, new Camera.PictureCallback() {
+                                                //拍照回调接口
+                                                @Override
+                                                public void onPictureTaken(byte[] data, Camera camera) {
+                                                    imageCallback(data, camera, json, resultData);
+                                                }
+                                            });
+                                        }
+                                    }
+                                });
 
-                            //mWebViewMain.loadUrl("https://www.baidu.com");
-                            android.util.Log.e("ZYN", "SUCCESS");
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                try {
+                                    mCamera2.takePicture(null, null, new Camera.PictureCallback() {
+                                        //拍照回调接口
+                                        @Override
+                                        public void onPictureTaken(byte[] data, Camera camera) {
+                                            imageCallback(data, camera, json, resultData);
+                                        }
+                                    });
+                                } catch (Exception ee) {
+                                    mActivity.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            showToast("保存人脸失败");
+                                        }
+                                    });
+                                    return;
+                                }
+
+                            }
+
                         }
                     });
                 }
@@ -961,12 +1008,65 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
         });
     }
 
+    private void imageCallback(byte[] data, Camera camera, String json, ResultData resultData) {
+        String imagePath = null;
+        try {
+            Bitmap bmpTmp = ImageUtils.saveFileToBmp(data, System.currentTimeMillis() + ".jpg");
+            Matrix m = new Matrix();
+            m.setRotate(-90, (float) bmpTmp.getWidth() / 2, (float) bmpTmp.getHeight() / 2);
+            final Bitmap bm1 = Bitmap.createBitmap(bmpTmp, 0, 0, bmpTmp.getWidth(), bmpTmp.getHeight(), m, true);
+            imagePath = ImageUtils.saveBitmapTofile(bm1, System.currentTimeMillis() + ".jpg");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (TextUtils.isEmpty(imagePath)) {
+            showToast("人脸图片保存失败");
+            return;
+        }
+        final String picStr = Base64.encodeToString(File2byte(imagePath), Base64.NO_WRAP);
+        final String imageFormat = "jpeg";
+        String imageBase64 = "data:image/" + imageFormat + ";base64," + picStr;
+        showRecogResultDialog(json, resultData, imageBase64);
+
+        //mWebViewMain.loadUrl("https://www.baidu.com");
+        android.util.Log.e("ZYN", "SUCCESS");
+
+        stopDetect();
+
+        startDetect(mListener);
+        dontPreView = true;
+        startPreview();
+
+//        pauseDetect();
+//        mCamera2.startPreview();
+//        mCamera1.startPreview();
+//        startPreviewDisplay(camera,mSurfaceHolderCamera);
+    }
+
+    /**
+     * 开始预览
+     *
+     * @param holder
+     */
+    public void startPreviewDisplay(Camera camera, SurfaceHolder holder) {
+        if (camera == null) {
+            throw new IllegalStateException("Camera must be set when start preview");
+        }
+        try {
+            camera.setPreviewDisplay(holder);
+            camera.startPreview();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void showRecogResultDialog(String json, ResultData resultData, final String imageBase64) {
 //        AlertDialog.Builder builder = new AlertDialog.Builder(FaceDetectActivity.this);
 //        builder.setIcon(R.drawable.ic_launcher);
 //        builder.setTitle(R.string.dialog_title_recog_result);
 //        builder.setPositiveButton(R.string.confirm, null);
-        if(TextUtils.isEmpty(imageBase64)){
+        if (TextUtils.isEmpty(imageBase64)) {
             showToast("识别成功，但是人脸图片为空");
             return;
         }
@@ -988,7 +1088,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
                 String personIdStr = cos.get(0).getPerson_id();
                 String[] personIdStrs = personIdStr.split("\\.");
                 if (personIdStrs.length == 3) {
-                    getUserInfo(personIdStrs[2],imageBase64);
+                    getUserInfo(personIdStrs[2], imageBase64);
                 }
                 return;
             }
@@ -1084,14 +1184,14 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
             @Override
             public void callback(Result result) {
                 if (result.isSuccess()) {
-                    showToast("设备开启成功" );
+                    showToast("设备开启成功");
                     if (mListener != null) {
                         mListener.success();
                     }
                     //开启设备
 //                    openDevice();
                 } else {
-                    if(mListener!=null){
+                    if (mListener != null) {
                         mListener.failed(result.getMessage());
                     }
                     showToast(result.getMessage());
@@ -1186,44 +1286,44 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
 //
 //    }
 
-    protected void stopPreview() {
-        if (null != mCamera1) {
-            mCamera1.stopPreview();
-            mCamera1.release();
-            mCamera1 = null;
-        }
-        if (null != mSurfaceHolderCamera) {
-            mSurfaceHolderCamera.removeCallback(this);
-            mSurfaceHolderCamera = null;
-        }
-        if (null != mSurfaceViewCamera) {
-            mLayoutMain.removeView(mSurfaceViewCamera);
-            mSurfaceViewCamera = null;
-        }
-    }
+//    protected void stopPreview() {
+//        if (null != mCamera1) {
+//            mCamera1.stopPreview();
+//            mCamera1.release();
+//            mCamera1 = null;
+//        }
+//        if (null != mSurfaceHolderCamera) {
+//            mSurfaceHolderCamera.removeCallback(this);
+//            mSurfaceHolderCamera = null;
+//        }
+//        if (null != mSurfaceViewCamera) {
+//            mLayoutMain.removeView(mSurfaceViewCamera);
+//            mSurfaceViewCamera = null;
+//        }
+//    }
 
-    private void startPreView1() {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (null != mSurfaceViewCamera) {
-                    if (null != mCamera2) {
-                        mCamera2.startPreview();
-                    }
-                } else {
-                    mSurfaceViewCamera = new SurfaceView(mActivity);
-
-                    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(1, 1);
-                    layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-                    layoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-
-                    mLayoutMain.addView(mSurfaceViewCamera, mLayoutMain.getChildCount(), layoutParams);
-                    mSurfaceHolderCamera = mSurfaceViewCamera.getHolder();
-                    mSurfaceHolderCamera.addCallback(FaceDetectComponent.this);
-                }
-            }
-        });
-    }
+//    private void startPreView1() {
+//        handler.post(new Runnable() {
+//            @Override
+//            public void run() {
+//                if (null != mSurfaceViewCamera) {
+//                    if (null != mCamera2) {
+//                        mCamera2.startPreview();
+//                    }
+//                } else {
+//                    mSurfaceViewCamera = new SurfaceView(mActivity);
+//
+//                    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(1, 1);
+//                    layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+//                    layoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+//
+//                    mLayoutMain.addView(mSurfaceViewCamera, mLayoutMain.getChildCount(), layoutParams);
+//                    mSurfaceHolderCamera = mSurfaceViewCamera.getHolder();
+//                    mSurfaceHolderCamera.addCallback(FaceDetectComponent.this);
+//                }
+//            }
+//        });
+//    }
 
 
     @Override

@@ -3,6 +3,7 @@ package com.huawen.huawenface.sdk.utils;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.view.View;
 
 
 import com.huawen.huawenface.sdk.Config;
@@ -36,6 +37,19 @@ public class ImageUtils {
         inStream.close();
         return data;
 
+    }
+    /**
+     * 截取控件截图
+     *
+     * @param view
+     * @param dir  存储路径前缀
+     * @return
+     */
+    public static Bitmap viewShot(View view) throws IOException {
+        view.setDrawingCacheEnabled(true);
+        Bitmap obmp = Bitmap.createBitmap(view.getDrawingCache());
+        view.setDrawingCacheEnabled(false);
+        return obmp;
     }
 
     public static Bitmap getPicFromBytes(byte[] bytes,
@@ -134,4 +148,48 @@ public class ImageUtils {
         return result?imageFile.getAbsolutePath():null;
     }
 
+    public static String saveByteToFile(byte[] data,String filename) throws IOException {
+
+        if (data == null || filename == null)
+            return null;
+        Bitmap.CompressFormat format = Bitmap.CompressFormat.JPEG;
+        int quality = 100;
+        OutputStream stream = null;
+        String path = Config.File.IMAGE_PATH;
+        File file = new File(path);
+
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+        File imageFile=new File(path+filename);
+        if(imageFile.exists()){
+            try {
+                imageFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        try {
+            stream = new FileOutputStream(imageFile);
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        FileOutputStream fos = new FileOutputStream(imageFile);
+        fos.write(data);
+        fos.close();
+
+        return imageFile.getAbsolutePath();
+    }
+
+    public static Bitmap saveFileToBmp(byte[] data, String filename) {
+        String file= null;
+        try {
+            file = saveByteToFile(data,filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return BitmapFactory.decodeFile(file);
+    }
 }
