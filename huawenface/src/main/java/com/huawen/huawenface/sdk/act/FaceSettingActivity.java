@@ -5,8 +5,10 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.AppCompatEditText;
 import android.view.View;
+import android.widget.CompoundButton;
 
 import com.huawen.huawenface.R;
 import com.huawen.huawenface.sdk.Constants;
@@ -20,6 +22,8 @@ public class FaceSettingActivity extends BaseActivity {
     private AppCompatEditText mDeviceInputView;
     private AppCompatEditText mDelayTimeInputView;
     private AppCompatEditText mScaleInputView;
+    private AppCompatCheckBox mBigPicMode;
+    private boolean lastB;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -29,6 +33,7 @@ public class FaceSettingActivity extends BaseActivity {
         mDeviceInputView = (AppCompatEditText) findViewById(R.id.dialog_input_device_id);
         mDelayTimeInputView = (AppCompatEditText) findViewById(R.id.dialog_input_delay_time);
         mScaleInputView = (AppCompatEditText) findViewById(R.id.dialog_input_scale);
+        mBigPicMode = (AppCompatCheckBox) findViewById(R.id.setting_big_mode);
         String clubeId = Global.getSpString(Constants.Sp.SP_GROUP_ID, "");
         String deviceId = Global.getSpString(Constants.Sp.SP_DEVICE_ID, "");
         int delayTime = Global.getSpInteger(Constants.Sp.SP_DELAY_TIME, 1500);
@@ -37,6 +42,19 @@ public class FaceSettingActivity extends BaseActivity {
         mDeviceInputView.setText(deviceId);
         mDelayTimeInputView.setText(String.valueOf(delayTime));
         mScaleInputView.setText(String.valueOf(scale));
+        lastB= Global.getSpBoolean(Constants.Sp.BIG_PIC,false);
+        mBigPicMode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if(b==lastB){
+                    return;
+                }
+                lastB=b;
+                Global.setSpBoolean(Constants.Sp.BIG_PIC,b);
+
+            }
+        });
+        mBigPicMode.setChecked(lastB);
         findViewById(R.id.confirm).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

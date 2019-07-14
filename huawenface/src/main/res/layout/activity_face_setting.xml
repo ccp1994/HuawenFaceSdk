@@ -136,6 +136,27 @@
                 android:textColorHint="#999"
                 android:theme="@style/EditTextView" />
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="10dp"
+                android:ems="4"
+
+                android:text="@string/big_pic_open"
+                android:textColor="#333" />
+
+           <android.support.v7.widget.AppCompatCheckBox
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:theme="@style/MyCheckBox"
+               android:id="@+id/setting_big_mode"/>
+        </LinearLayout>
 
         <Button
             android:id="@+id/setting_device_choose"

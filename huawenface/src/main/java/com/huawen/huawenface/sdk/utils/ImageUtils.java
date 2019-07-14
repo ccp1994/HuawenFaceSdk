@@ -1,14 +1,17 @@
 package com.huawen.huawenface.sdk.utils;
 
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.view.View;
 
 
 import com.huawen.huawenface.sdk.Config;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,14 +45,28 @@ public class ImageUtils {
      * 截取控件截图
      *
      * @param view
-     * @param dir  存储路径前缀
      * @return
      */
-    public static Bitmap viewShot(View view) throws IOException {
+    public static Bitmap viewShot(Activity activity, View v) throws IOException {
+        Bitmap bitmap;
+        View view = activity.getWindow().getDecorView();
         view.setDrawingCacheEnabled(true);
-        Bitmap obmp = Bitmap.createBitmap(view.getDrawingCache());
-        view.setDrawingCacheEnabled(false);
-        return obmp;
+        view.buildDrawingCache();
+        bitmap = view.getDrawingCache();
+        Rect frame = new Rect();
+        activity.getWindow().getDecorView().getWindowVisibleDisplayFrame(frame);
+        int[] location = new int[2];
+        v.getLocationOnScreen(location);
+        try {
+            bitmap = Bitmap.createBitmap(bitmap, location[0], location[1], v.getWidth(), v.getHeight());
+          return bitmap;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            // 清理缓存
+            view.destroyDrawingCache();
+        }
+        return bitmap;
     }
 
     public static Bitmap getPicFromBytes(byte[] bytes,
@@ -111,6 +128,105 @@ public class ImageUtils {
 
 
     /**
+     * compress image bitmap by "quality compress"
+     *
+     * @param image
+     * @param targetSize the target size of bitmap need compress to
+     * @return
+     */
+    public static Bitmap compressBitmap(Bitmap image, int targetSize) {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        image.compress(Bitmap.CompressFormat.JPEG, 100, baos);//quality compress
+        int options = 100;
+        while (baos.toByteArray().length / 1024 > targetSize) {    //if the size of bitmap is still > targetSize kb,compress
+            baos.reset();//重置baos即清空baos
+            image.compress(Bitmap.CompressFormat.JPEG, options, baos);//
+            options -= 10;//每次都减少10
+        }
+        ByteArrayInputStream isBm = new ByteArrayInputStream(baos.toByteArray());
+        Bitmap bitmap = BitmapFactory.decodeStream(isBm, null, null);
+        return bitmap;
+    }
+
+
+    /**
+     * compress image bitmap by "size scale compress
+     *
+     * @param srcPath    the bitmap 's file path
+     * @param reqWidth   the width which requested to compress
+     * @param reqHeight  the height which requested to compress
+     * @param targetSize the target size of bitmap need compress to
+     * @return
+     */
+    public static Bitmap compressBitmap(String srcPath, int reqWidth, int reqHeight, int targetSize) {
+        BitmapFactory.Options newOpts = new BitmapFactory.Options();
+        newOpts.inJustDecodeBounds = true;
+        Bitmap bitmap = BitmapFactory.decodeFile(srcPath, newOpts);
+
+        newOpts.inJustDecodeBounds = false;
+        newOpts.inSampleSize = calculateInSampleSize(newOpts, reqWidth, reqHeight);//set the scale
+        //read bitmap again
+        bitmap = BitmapFactory.decodeFile(srcPath, newOpts);
+        return compressBitmap(bitmap, targetSize);
+    }
+
+    public static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // 源图片的高度和宽度
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+        if (height > reqHeight || width > reqWidth) {
+            // 计算出实际宽高和目标宽高的比率
+            final int heightRatio = Math.round((float) height / (float) reqHeight);
+            final int widthRatio = Math.round((float) width / (float) reqWidth);
+            // 选择宽和高中最小的比率作为inSampleSize的值，这样可以保证最终图片的宽和高
+            // 一定都会大于等于目标的宽和高。
+            inSampleSize = heightRatio < widthRatio ? heightRatio : widthRatio;
+        }
+        return inSampleSize;
+    }
+
+    /**
+     * compress image bitmap by "size scale compress
+     *
+     * @param srcPath   the bitmap 's file path
+     * @param reqWidth  the width which requested to compress
+     * @param reqHeight the height which requested to compress
+     * @return
+     */
+    public static Bitmap compressBitmap(String srcPath, int reqWidth, int reqHeight) {
+        return compressBitmap(srcPath, reqWidth, reqHeight, 100);
+    }
+
+    /**
+     * compress a scaled bitmap & the size of bitmap is < 1M
+     *
+     * @param image
+     * @param targetSize the target size of bitmap need compress to
+     * @return
+     */
+    public static Bitmap compressScaledBitmap(Bitmap image, int targetSize) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        image.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        if (baos.toByteArray().length / 1024 > 1024) {//if the size of bitmap > 1M ,compress to avoid oom
+            baos.reset();
+            image.compress(Bitmap.CompressFormat.JPEG, 50, baos);
+        }
+        ByteArrayInputStream isBm = new ByteArrayInputStream(baos.toByteArray());
+        BitmapFactory.Options newOpts = new BitmapFactory.Options();
+        newOpts.inJustDecodeBounds = true;
+        Bitmap bitmap = BitmapFactory.decodeStream(isBm, null, newOpts);
+        newOpts.inJustDecodeBounds = false;
+        int reqHeight = 320;
+        int reqWidth =480;
+        newOpts.inSampleSize = calculateInSampleSize(newOpts, reqWidth, reqHeight);
+        isBm = new ByteArrayInputStream(baos.toByteArray());
+        bitmap = BitmapFactory.decodeStream(isBm, null, newOpts);
+        return compressBitmap(bitmap, targetSize);
+    }
+
+    /**
      * 保存图片到指定文件夹
      *
      * @param bmp
@@ -118,6 +234,7 @@ public class ImageUtils {
      * @return
      */
     public static String saveBitmapTofile(Bitmap bmp, String filename) {
+        bmp=compressScaledBitmap(bmp,20);
         if (bmp == null || filename == null)
             return null;
         Bitmap.CompressFormat format = Bitmap.CompressFormat.JPEG;

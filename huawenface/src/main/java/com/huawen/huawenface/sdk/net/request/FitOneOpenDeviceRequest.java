@@ -5,6 +5,24 @@ public class FitOneOpenDeviceRequest extends FitOneBaseRequest{
     private String dev_type;
     private String personId;
     private String faceId;
+    private String small_pic;
+    private String big_pic;
+
+    public String getSmall_pic() {
+        return small_pic;
+    }
+
+    public void setSmall_pic(String small_pic) {
+        this.small_pic = small_pic;
+    }
+
+    public String getBig_pic() {
+        return big_pic;
+    }
+
+    public void setBig_pic(String big_pic) {
+        this.big_pic = big_pic;
+    }
 
     public String getFaceId() {
         return faceId;

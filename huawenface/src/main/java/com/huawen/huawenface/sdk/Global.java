@@ -156,6 +156,7 @@ public class Global extends GlobalApp {
 //        initRongCloud();
         initApp();
         initOkGo();
+//        CrashReport.initCrashReport(getApplicationContext(), "bfb341c70d", false);
         try {
             getInitData(null);
         }catch(Exception e){
