@@ -26,6 +26,7 @@ import com.huawen.huawenface.sdk.net.OkGoNetAccess;
 import com.huawen.huawenface.sdk.net.Result;
 import com.huawen.huawenface.sdk.net.request.BaseRequest;
 import com.huawen.huawenface.sdk.net.request.ImageRecogRequest;
+import com.huawen.huawenface.sdk.utils.InternetUtils;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.cache.CacheEntity;
 import com.lzy.okgo.cache.CacheMode;
@@ -64,7 +65,7 @@ public class Global extends GlobalApp {
     private String tag = Global.class.getSimpleName();
     private boolean mLoadingArea;
     private static Global instance;
-    private boolean debug=true;
+    private boolean debug = true;
     public static FaceDB mFaceDB;
     Uri mImage;
     /**
@@ -159,37 +160,46 @@ public class Global extends GlobalApp {
 //        CrashReport.initCrashReport(getApplicationContext(), "bfb341c70d", false);
         try {
             getInitData(null);
-        }catch(Exception e){
-            Toast.makeText(this,"初始化失败",Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "初始化失败", Toast.LENGTH_SHORT).show();
         }
     }
 
     public void getInitData(final com.fpa.mainsupport.core.Callback callback) {
-        OkGoNetAccess.get(Config.REAL_FITONE_BASE+"/cgi/getDeviceType",new BaseRequest().toParams(BaseRequest.class), DeviceTypeData.class, new Callback() {
+        if (!InternetUtils.hasInternet(this)) {
+            return;
+        }
+        OkGoNetAccess.get(Config.REAL_FITONE_BASE + "/cgi/getDeviceType", new BaseRequest().toParams(BaseRequest.class), DeviceTypeData.class, new Callback() {
             @Override
             public void callback(Result result) {
-                DeviceTypeData fitoneResult= (DeviceTypeData) result;
-                if(fitoneResult.isSuccess()){
-                    Global.setSpString(Constants.Sp.DEVICE_TYPE,new Gson().toJson(fitoneResult.getData()));
-                    if(callback!=null){
-                        callback.call(true);
+                if (result instanceof DeviceTypeData) {
+
+                    DeviceTypeData fitoneResult = (DeviceTypeData) result;
+                    if (fitoneResult.isSuccess()) {
+                        Global.setSpString(Constants.Sp.DEVICE_TYPE, new Gson().toJson(fitoneResult.getData()));
+                        if (callback != null) {
+                            callback.call(true);
+                        }
+                    } else {
+                        Toast.makeText(getApplicationContext(), result.getMessage(), Toast.LENGTH_SHORT).show();
+                        if (callback != null) {
+                            callback.call(false);
+                        }
                     }
-                }else{
-                    Toast.makeText(getApplicationContext(), result.getMessage(), Toast.LENGTH_SHORT).show();
-                    if(callback!=null){
-                        callback.call(false);
-                    }
+
                 }
             }
         });
     }
-public List<DeviceTypeItemBean> getDeviceTypeList(){
-        String deviceType=Global.getSpString(Constants.Sp.DEVICE_TYPE,"");
-        if(TextUtils.isEmpty(deviceType)){
+
+    public List<DeviceTypeItemBean> getDeviceTypeList() {
+        String deviceType = Global.getSpString(Constants.Sp.DEVICE_TYPE, "");
+        if (TextUtils.isEmpty(deviceType)) {
             return null;
-        }
-        else return new Gson().fromJson(deviceType,new TypeToken<List<DeviceTypeItemBean>>(){}.getType());
-}
+        } else return new Gson().fromJson(deviceType, new TypeToken<List<DeviceTypeItemBean>>() {
+        }.getType());
+    }
+
     private void initOkGo() {
         //---------这里给出的是示例代码,告诉你可以这么传,实际使用的时候,根据需要传,不需要就不传-------------//
         HttpHeaders headers = new HttpHeaders();
@@ -285,9 +295,6 @@ public List<DeviceTypeItemBean> getDeviceTypeList(){
             return true;
         }
     }
-
-
-
 
 
     private void initApp() {
@@ -396,12 +403,10 @@ public List<DeviceTypeItemBean> getDeviceTypeList(){
     }
 
 
-
     protected void initPicasso() {
 //        if (mPicasso == null)
 //            mPicasso = Picasso.with(this);
     }
-
 
 
     public static String getCacheCompressPath(String filePath) {

@@ -217,7 +217,7 @@ public class FaceDetectComponent extends LinearLayout implements SurfaceHolder.C
             @Override
             public void onFloatViewClick() {
 //                Toast.makeText(mActivity, "facedetect is clicked, will close face detect", Toast.LENGTH_SHORT).show();
-                stopDetect();
+//                stopDetect();
             }
         });
 
